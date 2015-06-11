@@ -1,0 +1,25 @@
+{
+  "name": "nrtv-database-tie",
+  "version": "0.1.0",
+  "description": "Help stuff talk to the database",
+  "main": "editor.js",
+  "dependencies": {
+    "amdefine": "*",
+    "nrtv-component": "*",
+    "request": "*",
+    "nano": "*"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "requirejs": "*"
+  },
+  "license": "ISC",
+  "homepage": "https://github.com/erikpukinskis/nrtv-database-tie",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erikpukinskis/nrtv-database-tie.git"
+  }
+}
