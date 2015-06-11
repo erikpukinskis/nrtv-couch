@@ -2,7 +2,7 @@
   "name": "nrtv-database-tie",
   "version": "0.1.0",
   "description": "Help stuff talk to the database",
-  "main": "editor.js",
+  "main": "database-tie.js",
   "dependencies": {
     "amdefine": "*",
     "nrtv-component": "*",
