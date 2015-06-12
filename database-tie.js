@@ -8,8 +8,9 @@ define(["request"], function(request) {
   }
   DatabaseTie.prototype.db =
     function(verb, path) {
+      var host = "http://127.0.0.1:5984/"
       var args = Array.prototype.slice.call(arguments, 2)
-      var uri = "http://127.0.0.1:5984/"+path
+      var uri = host+path
 
       var callback = args.pop()
       var value = args[0]
@@ -25,18 +26,23 @@ define(["request"], function(request) {
           message = "["+response.statusCode+"] "+message
         }
         message = verb.toUpperCase()+" "+uri+" ("+JSON.stringify(value, null, 2)+") -> "+message
-          
-        throw new Error(message)
+        
+        callback(message)
       }
 
       request(options, function(error, response, body) {
-        if (error) {
+        if (error && error.code == 'ECONNREFUSED') {
+          throw new Error("You need to start couchdb. We expected it to be at "+host)
+        } else if (error) {
           handleError(response, error.message)
-        } else if (response.statusCode > "399") {
+        } else if (response.statusCode == 412) {
+          handleError(response, response.body)
+        } else if (response.statusCode > 399) {
           var res = JSON.parse(response.body)
           handleError(response, res.error+": "+res.reason)
+        } else {
+          callback(null, JSON.parse(body))
         }
-        callback(JSON.parse(body))
       })
     }
 

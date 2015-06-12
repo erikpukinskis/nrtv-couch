@@ -15,7 +15,7 @@ requirejs(
 
 
     function checkThatItsThere(err, callback) {
-      db.get("foo", function(value) {
+      db.get("foo", function(err, value) {
         expect(value.bar).to.equal("baz")
         console.log("BAR IS BAZ!")
         clearTimeout(timeout)
