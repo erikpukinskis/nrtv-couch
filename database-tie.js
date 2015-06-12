@@ -58,7 +58,7 @@ define(["request"], function(request) {
     }
 
   DatabaseTie.prototype.start =
-    function(callback) {
+    function(port, callback) {
       var _this = this
 
       this.createDatabase(function() {

@@ -38,7 +38,7 @@ requirejs(
       "floober",
       function(err, body) {
         var instance = new Test()
-        instance.start(function() {
+        instance.start(1234, function() {
           instance.go()
         })
       }
