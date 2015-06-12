@@ -1,6 +1,6 @@
 {
   "name": "nrtv-database-tie",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Help stuff talk to the database",
   "main": "database-tie.js",
   "dependencies": {
