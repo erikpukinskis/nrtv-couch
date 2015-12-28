@@ -4,9 +4,6 @@ module.exports = library.export(
   "nrtv-couch",
   ["request"],
   function(request) {
-    function Connection(name) {
-      this.databaseName = name
-    }
 
     function uri(path) {
       var host = "http://127.0.0.1:5984/"
@@ -37,11 +34,6 @@ module.exports = library.export(
         })
       }
 
-    Connection.prototype.uri =
-      function(key) {
-        return uri(this.databaseName+'/'+key)
-      }
-
     function handleError(response, message) {
       if (message == "not_found: no_db_file") {
         throw new Error("There doesn't seem to be any database called \""+this.databaseName+"\". If it hasn't been created yet, do couch.create(\""+this.databaseName+"\")")
@@ -50,7 +42,17 @@ module.exports = library.export(
       }
     }
 
-    Connection.prototype.set =
+    function KeyStore(options) {
+      this.databaseName = options.database
+
+      create(options.database,
+        function() {
+          console.log("created it")
+        }
+      )
+    }
+
+    KeyStore.prototype.set =
       function(key, value, callback) {
         command(
           'put',
@@ -63,7 +65,7 @@ module.exports = library.export(
         )
       }
 
-    Connection.prototype.get =
+    KeyStore.prototype.get =
       function(key, callback) {
         command(
           "get",
@@ -74,29 +76,24 @@ module.exports = library.export(
         )
       }
 
+    KeyStore.prototype.uri =
+      function(key) {
+        return uri(this.databaseName+'/'+key)
+      }
+
     function create(name, callback) {
-      var db = new Connection(name)
 
       command(
         'put',
         uri(name),
         null,
-        function() {
-          callback && callback(db)
-        },
-        handleError.bind(db)
+        callback,
+        handleError
       )
-
-      return db
-    }
-
-    function connect(name) {
-      return new Connection(name)
     }
 
     return {
-      create: create,
-      connect: connect
+      KeyStore: KeyStore
     }
 
   }

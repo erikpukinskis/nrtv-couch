@@ -6,25 +6,32 @@ test.using(
   ["./", "nano"],
   function(expect, done, couch, nano) {
 
-    var db
+    var rangers
 
     var nano = nano("http://localhost:5984")
 
-    nano.db.destroy("floober",
+    nano.db.destroy(
+      "power-rangers__test",
       function(err, body) {
-        db = couch.create("floober")
-        db.set(
-          "foo",
-          {bar: "baz"},
+
+        rangers =
+          new couch.KeyStore({
+            database: "power-rangers__test",
+            key: "color"
+          })
+
+        rangers.set(
+          "yellow",
+          {powerCoin: "Saber-Toothed Tiger"},
           checkThatItsThere
         )
       }
     )
 
     function checkThatItsThere() {
-      db.get("foo",
-        function(value) {
-          expect(value.bar).to.equal("baz")
+      rangers.get("yellow",
+        function(ranger) {
+          expect(ranger.powerCoin).to.equal("Saber-Toothed Tiger")
           done()
         }
       )
