@@ -1,47 +1,34 @@
-requirejs = require("requirejs")
+var test = require("nrtv-test")(require)
 
-requirejs(
-  ["nrtv-component", "database-tie", "chai", "nano"],
-  function(component, DatabaseTie, chai, nano) {
-    var expect = chai.expect
+test.using(
+  "can get back an object we set",
 
-    var Test = component(DatabaseTie)
-    var db = Test.database("floober")
+  ["./", "nano"],
+  function(expect, done, couch, nano) {
 
-    Test.prototype.go =
-      function() {
-        db.set("foo", {bar: "baz"}, checkThatItsThere)
+    var db
+
+    var nano = nano("http://localhost:5984")
+
+    nano.db.destroy("floober",
+      function(err, body) {
+        db = couch.create("floober")
+        db.set(
+          "foo",
+          {bar: "baz"},
+          checkThatItsThere
+        )
       }
+    )
 
-
-    function checkThatItsThere(err, callback) {
-      db.get("foo", function(err, value) {
-        expect(value.bar).to.equal("baz")
-        console.log("BAR IS BAZ!")
-        clearTimeout(timeout)
-      })
+    function checkThatItsThere() {
+      db.get("foo",
+        function(value) {
+          expect(value.bar).to.equal("baz")
+          done()
+        }
+      )
     }
 
-    var timeout = setTimeout(function() {
-      throw new Error("Database never sent a value back")
-    }, 1000)
-
-
-
-    // This should really start itself up on a specific port. :-/
-
-    var nano = nano(
-      "http://localhost:5984"
-    )
-
-    nano.db.destroy(
-      "floober",
-      function(err, body) {
-        var instance = new Test()
-        instance.start(1234, function() {
-          instance.go()
-        })
-      }
-    )
   }
 )

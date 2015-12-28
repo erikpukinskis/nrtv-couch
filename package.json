@@ -1,25 +1,23 @@
 {
-  "name": "nrtv-database-tie",
+  "name": "nrtv-couch",
   "version": "0.4.0",
-  "description": "Help stuff talk to the database",
-  "main": "database-tie.js",
+  "description": "Talk to a couchdb database",
+  "main": "couch.js",
   "dependencies": {
-    "amdefine": "*",
-    "nrtv-component": "*",
     "request": "*",
-    "nano": "*"
+    "nano": "*",
+    "nrtv-library": "*"
   },
   "scripts": {
     "test": "node test.js"
   },
   "devDependencies": {
-    "chai": "*",
-    "requirejs": "*"
+    "nrtv-test": "*"
   },
   "license": "ISC",
-  "homepage": "https://github.com/erikpukinskis/nrtv-database-tie",
+  "homepage": "https://github.com/erikpukinskis/nrtv-couch",
   "repository": {
     "type": "git",
-    "url": "https://github.com/erikpukinskis/nrtv-database-tie.git"
+    "url": "https://github.com/erikpukinskis/nrtv-couch.git"
   }
 }
