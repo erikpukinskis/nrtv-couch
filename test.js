@@ -18,6 +18,8 @@ test.using(
           new couch.KeyStore({
             database: "power-rangers__test",
             key: "color"
+          }, function(wasCreated) {
+            expect(wasCreated).to.be.true
           })
 
         rangers.set(
@@ -32,10 +34,21 @@ test.using(
       rangers.get("yellow",
         function(ranger) {
           expect(ranger.powerCoin).to.equal("Saber-Toothed Tiger")
-          done()
+          done.ish("got value back")
+
+          testReCreating()
         }
       )
     }
 
+    function testReCreating() {
+      new couch.KeyStore({
+        database: "power-rangers__test",
+        key: "color"
+      }, function(wasCreated) {
+        expect(wasCreated).to.be.false
+        done()
+      })
+    }
   }
 )

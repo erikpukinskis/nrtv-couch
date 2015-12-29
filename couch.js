@@ -24,12 +24,12 @@ module.exports = library.export(
           } else if (error) {
             handleError(response, error.message)
           } else if (response.statusCode == 412) {
-            handleError(response, response.body)
+            handleError(response, JSON.parse(response.body))
           } else if (response.statusCode > 399) {
             var res = JSON.parse(response.body)
             handleError(response, res.error+": "+res.reason)
           } else {
-            callback(JSON.parse(body))
+            callback && callback(JSON.parse(body))
           }
         })
       }
@@ -42,14 +42,10 @@ module.exports = library.export(
       }
     }
 
-    function KeyStore(options) {
+    function KeyStore(options, callback) {
       this.databaseName = options.database
 
-      create(options.database,
-        function() {
-          console.log("created it")
-        }
-      )
+      create(options.database, callback)
     }
 
     KeyStore.prototype.set =
@@ -87,8 +83,17 @@ module.exports = library.export(
         'put',
         uri(name),
         null,
-        callback,
-        handleError
+        function() {
+          callback && callback(true)
+        },
+        function(error, message) {
+          if (message.error == "file_exists") {
+            callback && callback(false)
+          } else {
+            console.log("RZN", typeof message)
+            throw new Error(message.reason)
+          }
+        }
       )
     }
 
