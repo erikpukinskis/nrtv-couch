@@ -2,8 +2,8 @@ var library = require("nrtv-library")(require)
 
 module.exports = library.export(
   "nrtv-couch",
-  ["request"],
-  function(request) {
+  ["request", "./one-time-lock"],
+  function(request, OneTimeLock) {
 
     function uri(path) {
       var host = "http://127.0.0.1:5984/"
@@ -63,70 +63,92 @@ module.exports = library.export(
       )
     }
 
-    function KeyStore(options, callback) {
-      this.databaseName = options.database
-      this.keyField = options.key
+    function KeyStore(database, key, callback) {
 
-      var path = "_design/keystores"
+      this.databaseName = database
+      this.keyField = key
+      var store = this
 
-      var designDocumentUri = this.uri(path)
+      this.setupLock = new OneTimeLock(
+        function(unlock) {
+          store._updateDesignDocument(
+            function() {
+              unlock()
+              callback && callback()
+            }
+          )
+        }
+      )
+    }
 
-      create(options.database, getDesignDoc)
+    KeyStore.prototype._updateDesignDocument =
+      function(callback) {
 
-      function getDesignDoc() {
+        var path = "_design/keystores"
+        var designDocumentUri = this.uri(path)
+        var store = this
+
+        create(this.databaseName,
+          getDoc)
+
+
+      function getDoc() {
         command(
           "get",
           designDocumentUri,
           null,
-          function(doc) {
-            if (doc.views.color) {
-              callback(false)
-            } else {
-              throw new Error("nrtv-couch doesn't know how to update design docs yet")
-            }
-
-          },
-          function(response, error) {
-            if (error.error == "not_found") {
-              updateDoc({
-                _id: path,
-                views: {}
-              })
-            } else {
-              handleError(response, error)
-            }
-          }
+          makeSureItsGood,
+          createNewDocOrErrorOut
         )
       }
 
+      function makeSureItsGood(doc) {
+        if (doc.views.color) {
+          callback(false)
+        } else {
+          throw new Error("nrtv-couch doesn't know how to update design docs yet")
+        }
+      }
+
+      function createNewDocOrErrorOut(response, details) {
+        if (details.error == "not_found") {
+          updateDoc({
+            _id: path,
+            views: {}
+          })
+        } else {
+          handleError(response, error)
+        }
+      }
+
+      var key = this.keyField
+
       function updateDoc(doc) {
         var map = function(doc) {
-          if(doc.value) {
-            emit(doc.value, doc)
+          if(doc.PLACEHOLDER) {
+            emit(doc.PLACEHOLDER, doc)
           }
         }
 
-        doc.views[options.key] = {
-          map: map.toString().replace(/value/g, options.key)
+        doc.views[key] = {
+          map: map.toString().replace(/PLACEHOLDER/g, key)
         }
 
         command(
           "put",
           designDocumentUri,
           doc,
-          function() {
-            callback(true)
-          },
+          callback,
           handleError
         )
       }
     }
 
     KeyStore.prototype.set =
-      function(key, object, callback) {
+      function(value, object, callback) {
 
         if (!object[this.keyField]) {
-          object[this.keyField] = key
+          object[this.keyField] = value
         }
 
         var store = this
@@ -134,43 +156,53 @@ module.exports = library.export(
         if (!object._id) {
           getUuid(function(id) {
             object._id = id
-            store.set(key, object, callback)
+            store.set(value, object, callback)
           })
           return
         }
 
-        command(
-          'put',
-          this.uri(object._id),
-          object,
-          function() {
-            callback()
-          },
-          handleError.bind(this)
+        this.setupLock.whenOpen(
+          command.bind(null,
+            'put',
+            this.uri(object._id),
+            object,
+            callback,
+            handleError.bind(this)
+          )
         )
       }
 
     KeyStore.prototype.get =
       function(key, callback) {
-        var store = this
+
         var path = "_design/keystores/_view/"+this.keyField+"?key=\""+key+"\"&limit=1"
 
-        command(
-          "get",
-          this.uri(path),
-          null,
-          function(result) {
-            var doc = result.rows[0].value
-            callback(doc)
-          },
-          function(response, error) {
-            if (error.error == "not_found") {
-              throw new Error("There doesn't seem to be anything at \""+key+"\" in database "+store.databaseName+": "+error.reason)
-            } else {
-              handleError(response, error)
-            }
-          }
+        this.setupLock.whenOpen(
+          command.bind(null,
+            "get",
+            this.uri(path),
+            null,
+            getFirstRow,
+            tryToHelp
+          )
         )
+
+        function getFirstRow(result) {
+          var doc = result.rows[0].value
+          callback(doc)
+        }
+
+        var store = this
+
+        function tryToHelp(response, error) {
+          var pattern = {}
+          pattern[store.keyField] = key
+          if (error.error == "not_found") {
+            throw new Error("There don't seem to be any documents with "+JSON.stringify(pattern)+" in the couch database "+store.databaseName+". ("+error.error+", "+error.reason+")")
+          } else {
+            handleError(response, error)
+          }
+        }
       }
 
     KeyStore.prototype.uri =
@@ -179,23 +211,24 @@ module.exports = library.export(
       }
 
     function create(name, callback) {
-
       command(
         'put',
         uri(name),
         null,
-        function() {
-          callback && callback(true)
-        },
-        function(error, message) {
-          if (message.error == "file_exists") {
-            callback && callback(false)
-          } else {
-            throw new Error(message.reason)
-          }
-        }
+        callback || noop,
+        itsOkIfItExists
       )
+
+      function itsOkIfItExists(error, message) {
+        if (message.error == "file_exists") {
+          callback && callback(false)
+        } else {
+          throw new Error(message.reason)
+        }
+      }
     }
+
+    function noop() {}
 
     return {
       KeyStore: KeyStore

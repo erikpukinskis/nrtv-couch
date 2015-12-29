@@ -6,47 +6,45 @@ test.using(
   ["./", "nano"],
   function(expect, done, couch, nano) {
 
-    var rangers
-
     var nano = nano("http://localhost:5984")
 
     nano.db.destroy(
       "power-rangers__test",
       function(err, body) {
 
-        rangers =
-          new couch.KeyStore({
-            database: "power-rangers__test",
-            key: "color"
-          }, function() {
-            rangers.set(
-              "yellow",
-              {powerCoin: "Saber-Toothed Tiger"},
-              checkThatItsThere
-            )
-          })
+        var rangers = 
+          new couch.KeyStore(
+            "power-rangers__test",
+            "color"
+          )
 
+        rangers.set(
+          "yellow",
+          {powerCoin: "Saber-Toothed Tiger"}
+        )
+
+        rangers.get(
+          "yellow",
+          runChecks
+        )
       }
     )
 
-    function checkThatItsThere() {
-      rangers.get("yellow",
-        function(ranger) {
-          expect(ranger).to.have.property("powerCoin", "Saber-Toothed Tiger")
-          expect(ranger).to.have.property("color", "yellow")
-          expect(ranger._id).to.match(/[a-z0-9]{32}/)
-          done.ish("got value back")
+    function runChecks(ranger) {
+      expect(ranger).to.have.property("powerCoin", "Saber-Toothed Tiger")
+      expect(ranger).to.have.property("color", "yellow")
+      expect(ranger._id).to.match(/[a-z0-9]{32}/)
+      done.ish("got value back")
 
-          testReCreating()
-        }
-      )
+      testReCreating()
     }
 
     function testReCreating() {
-      new couch.KeyStore({
-        database: "power-rangers__test",
-        key: "color"
-      }, done)
+      new couch.KeyStore(
+        "power-rangers__test",
+        "color",
+        done
+      )
     }
   }
 )
