@@ -44,12 +44,14 @@ module.exports = library.export(
 
     function KeyStore(options, callback) {
       this.databaseName = options.database
+      this.keyField = options.key
 
       create(options.database, callback)
     }
 
     KeyStore.prototype.set =
       function(key, value, callback) {
+        value[this.keyField] = key
         command(
           'put',
           this.uri(key),

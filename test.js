@@ -34,6 +34,7 @@ test.using(
       rangers.get("yellow",
         function(ranger) {
           expect(ranger.powerCoin).to.equal("Saber-Toothed Tiger")
+          expect(ranger.color).to.equal("yellow")
           done.ish("got value back")
 
           testReCreating()
