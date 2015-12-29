@@ -63,27 +63,33 @@ module.exports = library.export(
       )
     }
 
+    var setupLocks = {}
+
     function KeyStore(database, key, callback) {
 
       this.databaseName = database
       this.keyField = key
+      var identifier = database+"/"+key
+      var lock = setupLocks[identifier]
       var store = this
 
-      this.setupLock = new OneTimeLock(
-        function(unlock) {
-          store._updateDesignDocument(
-            function() {
-              unlock()
-              callback && callback()
+      if (!lock) {
+        lock =
+        setupLocks[identifier] =
+          new OneTimeLock(
+            function(unlock) {
+              store._updateDoc(unlock)
             }
           )
-        }
-      )
+      }
+
+      lock.whenOpen(callback)
+
+      this.setupLock = lock
     }
 
-    KeyStore.prototype._updateDesignDocument =
+    KeyStore.prototype._updateDoc =
       function(callback) {
-
         var path = "_design/keystores"
         var designDocumentUri = this.uri(path)
         var store = this
@@ -91,58 +97,57 @@ module.exports = library.export(
         create(this.databaseName,
           getDoc)
 
-
-      function getDoc() {
-        command(
-          "get",
-          designDocumentUri,
-          null,
-          makeSureItsGood,
-          createNewDocOrErrorOut
-        )
-      }
-
-      function makeSureItsGood(doc) {
-        if (doc.views.color) {
-          callback(false)
-        } else {
-          throw new Error("nrtv-couch doesn't know how to update design docs yet")
+        function getDoc() {
+          command(
+            "get",
+            designDocumentUri,
+            null,
+            makeSureItsGood,
+            createNewDocOrErrorOut
+          )
         }
-      }
 
-      function createNewDocOrErrorOut(response, details) {
-        if (details.error == "not_found") {
-          updateDoc({
-            _id: path,
-            views: {}
-          })
-        } else {
-          handleError(response, error)
-        }
-      }
-
-      var key = this.keyField
-
-      function updateDoc(doc) {
-        var map = function(doc) {
-          if(doc.PLACEHOLDER) {
-            emit(doc.PLACEHOLDER, doc)
+        function makeSureItsGood(doc) {
+          if (doc.views.color) {
+            callback(false)
+          } else {
+            throw new Error("nrtv-couch doesn't know how to update design docs yet")
           }
         }
 
-        doc.views[key] = {
-          map: map.toString().replace(/PLACEHOLDER/g, key)
+        function createNewDocOrErrorOut(response, details) {
+          if (details.error == "not_found") {
+            updateDoc({
+              _id: path,
+              views: {}
+            })
+          } else {
+            handleError(response, error)
+          }
         }
 
-        command(
-          "put",
-          designDocumentUri,
-          doc,
-          callback,
-          handleError
-        )
+        var key = this.keyField
+
+        function updateDoc(doc) {
+          var map = function(doc) {
+            if(doc.PLACEHOLDER) {
+              emit(doc.PLACEHOLDER, doc)
+            }
+          }
+
+          doc.views[key] = {
+            map: map.toString().replace(/PLACEHOLDER/g, key)
+          }
+
+          command(
+            "put",
+            designDocumentUri,
+            doc,
+            callback,
+            handleError
+          )
+        }
       }
-    }
 
     KeyStore.prototype.set =
       function(value, object, callback) {

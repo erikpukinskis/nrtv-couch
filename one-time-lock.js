@@ -8,7 +8,8 @@ OneTimeLock.prototype._unlock =
   function() {
     this.isLocked = false
     for(var i=this.waiting.length-1; i>=0; i--) {
-      this.waiting[i]()
+      var func = this.waiting[i]
+      func && func()
     }
     delete this.waiting
   }
