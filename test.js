@@ -18,23 +18,23 @@ test.using(
           new couch.KeyStore({
             database: "power-rangers__test",
             key: "color"
-          }, function(wasCreated) {
-            expect(wasCreated).to.be.true
+          }, function() {
+            rangers.set(
+              "yellow",
+              {powerCoin: "Saber-Toothed Tiger"},
+              checkThatItsThere
+            )
           })
 
-        rangers.set(
-          "yellow",
-          {powerCoin: "Saber-Toothed Tiger"},
-          checkThatItsThere
-        )
       }
     )
 
     function checkThatItsThere() {
       rangers.get("yellow",
         function(ranger) {
-          expect(ranger.powerCoin).to.equal("Saber-Toothed Tiger")
-          expect(ranger.color).to.equal("yellow")
+          expect(ranger).to.have.property("powerCoin", "Saber-Toothed Tiger")
+          expect(ranger).to.have.property("color", "yellow")
+          expect(ranger._id).to.match(/[a-z0-9]{32}/)
           done.ish("got value back")
 
           testReCreating()
@@ -46,10 +46,7 @@ test.using(
       new couch.KeyStore({
         database: "power-rangers__test",
         key: "color"
-      }, function(wasCreated) {
-        expect(wasCreated).to.be.false
-        done()
-      })
+      }, done)
     }
   }
 )

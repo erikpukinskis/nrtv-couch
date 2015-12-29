@@ -12,6 +12,13 @@ module.exports = library.export(
 
     function command(verb, uri, value, callback, handleError) {
 
+        console.log(
+          "couch ∈∋",
+          verb.toUpperCase(),
+          uri,
+          value ? JSON.stringify(value, null, 2) : "[empty]"
+        )
+
         options = {
           uri: uri,
           method: verb,
@@ -26,8 +33,8 @@ module.exports = library.export(
           } else if (response.statusCode == 412) {
             handleError(response, JSON.parse(response.body))
           } else if (response.statusCode > 399) {
-            var res = JSON.parse(response.body)
-            handleError(response, res.error+": "+res.reason)
+            var body = JSON.parse(response.body)
+            handleError(response, body)
           } else {
             callback && callback(JSON.parse(body))
           }
@@ -35,27 +42,107 @@ module.exports = library.export(
       }
 
     function handleError(response, message) {
-      if (message == "not_found: no_db_file") {
+
+      if (message.error == "not_found" && message.reason == "no_db_file") {
         throw new Error("There doesn't seem to be any database called \""+this.databaseName+"\". If it hasn't been created yet, do couch.create(\""+this.databaseName+"\")")
       } else {
-        throw new Error(message)
+        throw new Error(message.error+": "+message.reason)
       }
+    }
+
+    function getUuid(callback) {
+      command(
+        "get",
+        uri("_uuids"),
+        null,
+        function(response) {
+          var ids = response.uuids
+          callback(ids[0])
+        },
+        handleError
+      )
     }
 
     function KeyStore(options, callback) {
       this.databaseName = options.database
       this.keyField = options.key
 
-      create(options.database, callback)
+      var path = "_design/keystores"
+
+      var designDocumentUri = this.uri(path)
+
+      create(options.database, getDesignDoc)
+
+      function getDesignDoc() {
+        command(
+          "get",
+          designDocumentUri,
+          null,
+          function(doc) {
+            if (doc.views.color) {
+              callback(false)
+            } else {
+              throw new Error("nrtv-couch doesn't know how to update design docs yet")
+            }
+
+          },
+          function(response, error) {
+            if (error.error == "not_found") {
+              updateDoc({
+                _id: path,
+                views: {}
+              })
+            } else {
+              handleError(response, error)
+            }
+          }
+        )
+      }
+
+      function updateDoc(doc) {
+        var map = function(doc) {
+          if(doc.value) {
+            emit(doc.value, doc)
+          }
+        }
+
+        doc.views[options.key] = {
+          map: map.toString().replace(/value/g, options.key)
+        }
+
+        command(
+          "put",
+          designDocumentUri,
+          doc,
+          function() {
+            callback(true)
+          },
+          handleError
+        )
+      }
     }
 
     KeyStore.prototype.set =
-      function(key, value, callback) {
-        value[this.keyField] = key
+      function(key, object, callback) {
+
+        if (!object[this.keyField]) {
+          object[this.keyField] = key
+        }
+
+        var store = this
+
+        if (!object._id) {
+          getUuid(function(id) {
+            object._id = id
+            store.set(key, object, callback)
+          })
+          return
+        }
+
         command(
           'put',
-          this.uri(key),
-          value,
+          this.uri(object._id),
+          object,
           function() {
             callback()
           },
@@ -65,12 +152,24 @@ module.exports = library.export(
 
     KeyStore.prototype.get =
       function(key, callback) {
+        var store = this
+        var path = "_design/keystores/_view/"+this.keyField+"?key=\""+key+"\"&limit=1"
+
         command(
           "get",
-          this.uri(key),
+          this.uri(path),
           null,
-          callback,
-          handleError.bind(this)
+          function(result) {
+            var doc = result.rows[0].value
+            callback(doc)
+          },
+          function(response, error) {
+            if (error.error == "not_found") {
+              throw new Error("There doesn't seem to be anything at \""+key+"\" in database "+store.databaseName+": "+error.reason)
+            } else {
+              handleError(response, error)
+            }
+          }
         )
       }
 
@@ -92,7 +191,6 @@ module.exports = library.export(
           if (message.error == "file_exists") {
             callback && callback(false)
           } else {
-            console.log("RZN", typeof message)
             throw new Error(message.reason)
           }
         }
