@@ -1,7 +1,6 @@
 var test = require("nrtv-test")(require)
 var library = test.library
 
-// test.only("can get back an object we set")
 
 library.define(
   "set-up",
@@ -17,6 +16,7 @@ library.define(
     }
   }
 )
+
 
 test.using(
   "can get back an object we set",
@@ -102,3 +102,4 @@ test.using(
     )
   }
 )
+

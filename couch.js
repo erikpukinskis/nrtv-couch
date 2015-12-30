@@ -93,6 +93,7 @@ module.exports = library.export(
         var path = "_design/keystores"
         var designDocumentUri = this.uri(path)
         var store = this
+        var key = this.keyField
 
         create(this.databaseName,
           getDoc)
@@ -108,7 +109,7 @@ module.exports = library.export(
         }
 
         function makeSureItsGood(doc) {
-          if (doc.views.color) {
+          if (doc.views[key]) {
             callback(false)
           } else {
             throw new Error("nrtv-couch doesn't know how to update design docs yet")
