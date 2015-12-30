@@ -12,7 +12,8 @@
     "test": "node test.js"
   },
   "devDependencies": {
-    "nrtv-test": "*"
+    "nrtv-test": "*",
+    "async": "*"
   },
   "license": "ISC",
   "homepage": "https://github.com/erikpukinskis/nrtv-couch",

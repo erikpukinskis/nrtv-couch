@@ -1,17 +1,31 @@
 var test = require("nrtv-test")(require)
+var library = test.library
+
+// test.only("can get back an object we set")
+
+library.define(
+  "set-up",
+  ["nano"],
+  function(nano) {
+    var nano = nano("http://localhost:5984")
+
+    return function(db, callback) {
+      nano.db.destroy(
+        db,
+        callback
+      )
+    }
+  }
+)
 
 test.using(
   "can get back an object we set",
 
-  ["./", "nano"],
-  function(expect, done, couch, nano) {
+  ["./", "set-up"],
+  function(expect, done, couch, setUp) {
 
-    var nano = nano("http://localhost:5984")
-
-    nano.db.destroy(
-      "power-rangers__test",
-      function(err, body) {
-
+    setUp("power-rangers__test",
+      function() {
         var rangers = 
           new couch.KeyStore(
             "power-rangers__test",
@@ -25,25 +39,41 @@ test.using(
 
         rangers.get(
           "yellow",
-          runChecks
+          checkRanger
         )
       }
     )
 
-    function runChecks(ranger) {
+    function checkRanger(ranger) {
       expect(ranger).to.have.property("powerCoin", "Saber-Toothed Tiger")
       expect(ranger).to.have.property("color", "yellow")
       expect(ranger._id).to.match(/[a-z0-9]{32}/)
-      done.ish("got value back")
-
-      testReCreating()
+      done()
     }
+  }
+)
 
-    function testReCreating() {
+test.using(
+  "can create the same KeyStore multiple times",
+
+  ["./", "set-up", "async"],
+  function(expect, done, couch, setUp, async) {
+
+    setUp("normal-persons__test",
+      function() {
+        async.series([
+          createOne,
+          createOne,
+          done
+        ])
+      }
+    )
+
+    function createOne(callback) {
       new couch.KeyStore(
-        "power-rangers__test",
-        "color",
-        done
+        "normal-persons__test",
+        "name",
+        callback
       )
     }
   }
