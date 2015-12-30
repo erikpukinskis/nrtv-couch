@@ -1,6 +1,6 @@
 {
   "name": "nrtv-couch",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Talk to a couchdb database",
   "main": "couch.js",
   "dependencies": {
