@@ -78,3 +78,27 @@ test.using(
     }
   }
 )
+
+
+test.using(
+  "works if you don't find anything",
+
+  ["./", "set-up", "async"],
+  function(expect, done, couch, setUp, async) {
+
+    setUp("star__test",
+      function() {
+        planets = new couch.KeyStore(
+          "star__test",
+          "SAO"
+        )
+        planets.get("67174",
+          function(vega) {
+            expect(vega).to.be.undefined
+            done()
+          }
+        )
+      }
+    )
+  }
+)

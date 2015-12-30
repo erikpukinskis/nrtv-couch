@@ -70,8 +70,8 @@ module.exports = library.export(
       this.databaseName = database
       this.keyField = key
       var identifier = database+"/"+key
-      var lock = setupLocks[identifier]
       var store = this
+      var lock = setupLocks[identifier]
 
       if (!lock) {
         lock =
@@ -193,8 +193,9 @@ module.exports = library.export(
         )
 
         function getFirstRow(result) {
-          var doc = result.rows[0].value
-          callback(doc)
+          var entry = result.rows[0]
+
+          callback(entry && entry.value)
         }
 
         var store = this
