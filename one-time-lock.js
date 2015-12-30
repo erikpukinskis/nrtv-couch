@@ -19,7 +19,7 @@ OneTimeLock.prototype.whenOpen =
     if (this.isLocked) {
       this.waiting.push(func)
     } else {
-      func()
+      func && func()
     }
   }
 
